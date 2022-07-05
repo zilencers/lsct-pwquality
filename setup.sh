@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PAM_PASSWD="/etc/pam.d/passwd"
+
 declare -A RULES
 RULES[retry]=2             # Number retries
 RULES[minlen]=12           # Minimum password length
@@ -30,10 +32,10 @@ get_quality_rules() {
     echo "of setting up password quality rules."
     echo ""
     
-    printf "Max number of retries (default $RETRY): "
+    printf "Max number of retries (default ${RULES[retry]}): "
     read retries
 
-    printf "Minimum password length (default 12): "
+    printf "Minimum password length (default ${RULES[minlen]}): "
     read min_length
 
     printf "Minimum digits (default 1): "
@@ -48,7 +50,7 @@ get_quality_rules() {
     printf "Minimum special characters (default 1): "
     read min_special
 
-    printf "Number of characters used from old password (default $DIFOK): "
+    printf "Number of characters used from old password (default ${RULES[difok]}): "
     read diff_chars
 
     printf "Enforce the rules for root? (y/N): "
@@ -58,24 +60,23 @@ get_quality_rules() {
 set_quality_rules() {
     [ ! -z "$retries" ] && RULES[retry]=$retires
     [ ! -z "$min_length" ] && RULES[minlen]=$min_length
-    [ ! -z $min_digits ] && RULES[dcredit]=$min_digits
-    [ ! -z "$min_upper" ] && RULES[ucredit]=$min_upper
-    [ ! -z "$min_lower" ] && RULES[lcredit]=$min_lower
-    [ ! -z "$min_special" ] && RULES[ocredit]=$min_special
+    [ ! -z $min_digits ] && RULES[dcredit]=-$min_digits
+    [ ! -z "$min_upper" ] && RULES[ucredit]=-$min_upper
+    [ ! -z "$min_lower" ] && RULES[lcredit]=-$min_lower
+    [ ! -z "$min_special" ] && RULES[ocredit]=-$min_special
     [ ! -z "$diff_chars" ] && RULES[difok]=$diff_chars
     
     if [ "$root_enforcement" == "N" ] ; then 
         RULES['enforce_root']=''
-    fi 
+    fi
 
-    echo "Retry: " ${RULES[retry]}
-    echo ${RULES[minlen]}
-    echo ${RULES[dcredit]}
-    echo ${RULES[ucredit]}
-    echo ${RULES[lcredit]}
-    echo ${RULES[ocredit]}
-    echo ${RULES[difok]}
-    echo ${RULES['enforce_root']}
+    touch $PAM_PASSWD.bak
+
+    echo "#%PAM-1.0" >> "$PAM_PASSWD.bak"
+    echo "password   required   pam_pwquality.so retry=${RULES[retry]} minlen=${RULES[minlen]} difok=${RULES[difok]} dcredit=${RULES[dcredit]}\
+    ucredit=${RULES[ucredit]} lcredit=${RULES[lcredit]} ocredit=${RULES[ocredit]} ${RULES['enforce_root']}" >> $PAM_PASSWD.bak
+    echo "password   required   pam_unix.so use_authtok sha512 shadow" >> $PAM_PASSWD.bak
+
 }
 
 reset_password() {
