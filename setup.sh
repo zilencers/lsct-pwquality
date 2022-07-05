@@ -70,6 +70,7 @@ set_quality_rules() {
         RULES['enforce_root']=''
     fi
 
+    [ -f $PAM_PASSWD.bak ] && rm $PAM_PASSWD.bak
     touch $PAM_PASSWD.bak
 
     echo "#%PAM-1.0" >> "$PAM_PASSWD.bak"
@@ -77,22 +78,29 @@ set_quality_rules() {
     ucredit=${RULES[ucredit]} lcredit=${RULES[lcredit]} ocredit=${RULES[ocredit]} ${RULES['enforce_root']}" >> $PAM_PASSWD.bak
     echo "password   required   pam_unix.so use_authtok sha512 shadow" >> $PAM_PASSWD.bak
 
+    cp $PAM_PASSWD.bak $PAM_PASSWD
 }
 
 reset_password() {
-    echo "Password Requirements:"
-    echo "  * 12 characters minimum length"
-    echo "  * at least 6 characters should be different from old password when entering a new one"
-    echo "  * at least 1 digit"
-    echo "  * at least 1 uppercase"
-    echo "  * at least 1 lowercase"
-    echo "  * at least 1 other character"
-    echo "  * cannot contain the words "ipdefender", "ip", "defender" and "firewall" "
     echo ""
-    echo "Please enter a new root password:"
+    echo "Password Quality Rules are now setup"
+    printf "Would you like to reset your password now? (y/N): "
+    read answer
+
+    if [ "$answer" == "y" ] ; then 
+        echo "Password Requirements:"
+        echo "  * minimum ${RULES[minlen]} character in length"
+        echo "  * at least ${RULES[difok]} characters should be different from previous password"
+        echo "  * at least ${RULES[dcredit]} digit"
+        echo "  * at least ${RULES[ucredit]} uppercase"
+        echo "  * at least ${RULES[lcredit]} lowercase"
+        echo "  * at least ${RULES[ocredit]} other character"
+        echo ""
+        echo "Please enter a new password:"
     
-    passwd root
-    touch PASS
+        passwd $(whoami)
+        touch PASS
+    fi
 }
 
 title() {
@@ -103,9 +111,10 @@ title() {
 
 main() {
     title
-    #install_pkgs $@
+    install_pkgs $@
     get_quality_rules
     set_quality_rules
+    reset_password
 }
 
 main $@
