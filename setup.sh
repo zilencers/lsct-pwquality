@@ -28,6 +28,7 @@ install_pkgs() {
 }
 
 get_quality_rules() {
+    echo ""
     echo "The following prompts will guide you through the process"
     echo "of setting up password quality rules."
     echo ""
@@ -101,6 +102,10 @@ reset_password() {
         passwd $(whoami)
         touch PASS
     fi
+
+    echo "Password quality setup is now complete..."
+    echo "Press any key to continue"
+    read
 }
 
 title() {
